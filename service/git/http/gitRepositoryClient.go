@@ -9,7 +9,7 @@ type httpClient struct {
 }
 
 type Client interface {
-	Get(url string) ([]byte, error)
+	Get(url string, token string) ([]byte, error)
 }
 
 func NewGitRepositoryHTTPClient() Client {
@@ -18,7 +18,7 @@ func NewGitRepositoryHTTPClient() Client {
 	}
 }
 
-func (httpClient *httpClient) Get(url string) ([]byte, error) {
+func (httpClient *httpClient) Get(url string, token string) ([]byte, error) {
 	res := fasthttp.AcquireResponse()
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseResponse(res)
@@ -26,7 +26,7 @@ func (httpClient *httpClient) Get(url string) ([]byte, error) {
 
 	req.SetRequestURI(url)
 	req.Header.SetMethod("GET")
-	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("PRIVATE-TOKEN", token)
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 	err := httpClient.client.Do(req, res)
@@ -34,10 +34,5 @@ func (httpClient *httpClient) Get(url string) ([]byte, error) {
 		return nil, err
 	}
 
-	result, err := res.BodyGunzip()
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return res.Body(), nil
 }

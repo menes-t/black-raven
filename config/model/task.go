@@ -1,9 +1,10 @@
 package model
 
 type TaskConfig struct {
-	ChannelNameWebHookUrlMap map[string]string
 	ApiUrl                   string
 	ApiToken                 string
-	PeriodAsHour             int
+	ChannelNameWebHookUrlMap map[string]string
+	PeriodAsHour             uint64
 	StartingTimeAsHour       int
+	EndingTimeAsHour         int
 }

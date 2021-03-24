@@ -7,7 +7,7 @@ type SlackRequest struct {
 
 type Block struct {
 	Type   string     `json:"type,omitempty"`
-	Text   Markdown   `json:"text,omitempty"`
+	Text   *Markdown  `json:"text,omitempty"`
 	Fields []Markdown `json:"fields,omitempty"`
 }
 

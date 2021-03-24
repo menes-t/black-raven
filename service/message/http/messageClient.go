@@ -30,7 +30,6 @@ func (httpClient *httpClient) Get(host string, request interface{}) ([]byte, err
 	req.SetRequestURI(host)
 	req.SetBody(body)
 	req.Header.SetMethod("POST")
-	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 	err := httpClient.client.Do(req, res)
@@ -38,10 +37,5 @@ func (httpClient *httpClient) Get(host string, request interface{}) ([]byte, err
 		return nil, err
 	}
 
-	result, err := res.BodyGunzip()
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return res.Body(), nil
 }

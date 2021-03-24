@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/jasonlvhit/gocron"
 	"github.com/menes-t/black-raven/config"
 	"github.com/menes-t/black-raven/service"
 	"github.com/menes-t/black-raven/service/git"
@@ -24,13 +23,9 @@ func main() {
 	messageHTTPClient := messagehttp.NewMessageHTTPClient()
 	slackService := message.NewSlackService(messageHTTPClient)
 
-	reminderService := service.NewReminderService(gitlabService, slackService)
+	reminderService := service.NewReminderService(gitlabService, slackService, applicationConfig.GetConfig())
 
-	tasks := applicationConfig.GetConfig().Tasks
+	reminderService.Remind(applicationConfig.GetConfig().Tasks[0]) //TODO delete this
 
-	for _, task := range tasks {
-		taskScheduler := gocron.NewScheduler()
-		taskScheduler.Every(1).Hour().Do(reminderService.Remind, task)
-		<-taskScheduler.Start()
-	}
+	//reminderService.StartNewDay() TODO uncomment this
 }

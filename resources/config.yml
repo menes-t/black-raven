@@ -1,0 +1,9 @@
+tasks:
+  - apiUrl: ${API_URL}
+    apiToken: ${API_TOKEN}
+    channelNameWebHookUrlMap:
+      any_ci_channel: ${HOOK_FOR_CI_CHANNEL}
+    periodAsHour: 2
+    startingTimeAsHour: 10
+    endingTimeAsHour: 18
+startingTime: "08:40"
