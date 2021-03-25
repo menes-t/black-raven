@@ -10,13 +10,13 @@ import (
 )
 
 type Service struct {
-	gitRepositoryService GitRepositoryService
-	messageService       MessageService
-	applicationConfig    config.ApplicationConfig
+	gitRepositoryServices map[string]GitRepositoryService
+	messageServices       map[string]MessageService
+	applicationConfig     config.ApplicationConfig
 }
 
 type MessageService interface {
-	SendMessage(host string, mergeRequests []response.GitResponse)
+	SendMessage(channelName string, host string, mergeRequests []response.GitResponse)
 }
 
 type GitRepositoryService interface {
@@ -24,27 +24,27 @@ type GitRepositoryService interface {
 }
 
 type ReminderService interface {
-	Remind(config model.TaskConfig)
+	Remind(config model.Task)
 	StartNewDay()
 }
 
 func NewReminderService(
-	gitRepositoryService GitRepositoryService,
-	messageService MessageService,
+	gitRepositoryServices map[string]GitRepositoryService,
+	messageServices map[string]MessageService,
 	applicationConfig config.ApplicationConfig,
 ) ReminderService {
 	return &Service{
-		gitRepositoryService: gitRepositoryService,
-		messageService:       messageService,
-		applicationConfig:    applicationConfig,
+		gitRepositoryServices: gitRepositoryServices,
+		messageServices:       messageServices,
+		applicationConfig:     applicationConfig,
 	}
 }
 
-func (service *Service) Remind(config model.TaskConfig) {
-	mergeRequests := service.gitRepositoryService.Get(config.ApiUrl, config.ApiToken)
+func (service *Service) Remind(config model.Task) {
+	mergeRequests := service.gitRepositoryServices["GitLab"].Get(config.GitRepositoryConfig.ApiUrl, config.GitRepositoryConfig.ApiToken)
 
-	for _, webHookUrl := range config.ChannelNameWebHookUrlMap {
-		service.messageService.SendMessage(webHookUrl, mergeRequests) //TODO run this in a go routine
+	for channelName, webHookUrl := range config.MessageConfig.ChannelNameWebHookUrlMap {
+		service.messageServices["Slack"].SendMessage(channelName, webHookUrl, mergeRequests) //TODO run this in a go routine
 	}
 }
 
@@ -55,16 +55,17 @@ func (service *Service) StartNewDay() {
 		now := time.Now()
 
 		var job *gocron.Job
-		if now.Hour() < task.EndingTimeAsHour && now.Hour() > task.StartingTimeAsHour {
-			job = taskScheduler.Every(task.PeriodAsHour).Hour().From(&now)
-		} else if now.Hour() < task.StartingTimeAsHour {
-			job = taskScheduler.Every(task.PeriodAsHour).Hour().At(service.applicationConfig.StartingTime)
+		if now.Hour() < task.TaskConfig.EndingTimeAsHour && now.Hour() > task.TaskConfig.StartingTimeAsHour {
+			job = taskScheduler.Every(task.TaskConfig.PeriodAsHour).Hour().From(&now)
+		} else if now.Hour() < task.TaskConfig.StartingTimeAsHour {
+			job = taskScheduler.Every(task.TaskConfig.PeriodAsHour).Hour().At(service.applicationConfig.StartingTime)
 		} else {
-			job = taskScheduler.Every(task.PeriodAsHour).Hour().At(strconv.Itoa(task.StartingTimeAsHour) + ":00")
+			job = taskScheduler.Every(task.TaskConfig.PeriodAsHour).Hour().At(strconv.Itoa(task.TaskConfig.StartingTimeAsHour) + ":00")
 		}
+		//TODO handle these cron job errors in some way
 		job.Do(service.Remind, task)
 
-		taskScheduler.Every(1).Day().At(strconv.Itoa(task.EndingTimeAsHour) + ":00").Do(func() {
+		taskScheduler.Every(1).Day().At(strconv.Itoa(task.TaskConfig.EndingTimeAsHour) + ":00").Do(func() {
 			taskScheduler.Clear()
 			service.StartNewDay()
 		})

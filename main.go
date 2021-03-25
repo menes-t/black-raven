@@ -23,7 +23,10 @@ func main() {
 	messageHTTPClient := messagehttp.NewMessageHTTPClient()
 	slackService := message.NewSlackService(messageHTTPClient)
 
-	reminderService := service.NewReminderService(gitlabService, slackService, applicationConfig.GetConfig())
+	messageServices := map[string]service.MessageService{"Slack": slackService}
+	gitRepositoryServices := map[string]service.GitRepositoryService{"GitLab": gitlabService}
+
+	reminderService := service.NewReminderService(gitRepositoryServices, messageServices, applicationConfig.GetConfig())
 
 	reminderService.Remind(applicationConfig.GetConfig().Tasks[0]) //TODO delete this
 

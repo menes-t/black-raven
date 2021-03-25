@@ -1,8 +1,9 @@
 package request
 
 type SlackRequest struct {
-	Type   string  `json:"type,omitempty"`
-	Blocks []Block `json:"blocks,omitempty"`
+	Channel string  `json:"channel,omitempty"`
+	Type    string  `json:"type,omitempty"`
+	Blocks  []Block `json:"blocks,omitempty"`
 }
 
 type Block struct {
