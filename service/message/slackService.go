@@ -2,6 +2,7 @@ package message
 
 import (
 	"fmt"
+	"github.com/menes-t/black-raven/config/model"
 	"github.com/menes-t/black-raven/logger"
 	"github.com/menes-t/black-raven/model/request"
 	"github.com/menes-t/black-raven/model/response"
@@ -18,7 +19,8 @@ type SlackService struct {
 func NewSlackService(client http.Client) service.MessageService {
 	return &SlackService{client: client}
 }
-func (service *SlackService) SendMessage(channelName string, host string, mergeRequests []response.GitResponse) {
+
+func (service *SlackService) SendMessage(channelConfig model.MessageChannelConfig, mergeRequests []response.GitResponse) {
 	var blocks []request.Block
 	if len(mergeRequests) != 0 {
 		//TODO implementing a block builder might be better (move all slack specific things to package slack)
@@ -27,7 +29,7 @@ func (service *SlackService) SendMessage(channelName string, host string, mergeR
 				Type: "section",
 				Text: &request.Markdown{
 					Type: "mrkdwn",
-					Text: "*Hey @channel! There are merge requests to look!* :alert::alert:",
+					Text: fmt.Sprintf("*Hey @%s! There are merge requests to look!* :alert::alert:", channelConfig.NotificationModifier),
 				},
 			},
 			{
@@ -100,8 +102,8 @@ func (service *SlackService) SendMessage(channelName string, host string, mergeR
 		}
 	}
 
-	_, err := service.client.Get(host, request.SlackRequest{
-		Channel: channelName,
+	_, err := service.client.Get(channelConfig.WebHookUrl, request.SlackRequest{
+		Channel: channelConfig.ChannelName,
 		Type:    "home",
 		Blocks:  blocks,
 	})

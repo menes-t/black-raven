@@ -16,7 +16,7 @@ type Service struct {
 }
 
 type MessageService interface {
-	SendMessage(channelName string, host string, mergeRequests []response.GitResponse)
+	SendMessage(channelConfig model.MessageChannelConfig, mergeRequests []response.GitResponse)
 }
 
 type GitRepositoryService interface {
@@ -43,8 +43,8 @@ func NewReminderService(
 func (service *Service) Remind(config model.Task) {
 	mergeRequests := service.gitRepositoryServices["GitLab"].Get(config.GitRepositoryConfig.ApiUrl, config.GitRepositoryConfig.ApiToken)
 
-	for channelName, webHookUrl := range config.MessageConfig.ChannelNameWebHookUrlMap {
-		service.messageServices["Slack"].SendMessage(channelName, webHookUrl, mergeRequests) //TODO run this in a go routine
+	for _, channelConfig := range config.MessageConfig.Channels {
+		service.messageServices["Slack"].SendMessage(channelConfig, mergeRequests) //TODO run this in a go routine
 	}
 }
 

@@ -12,11 +12,17 @@ type GitRepositoryConfig struct {
 }
 
 type MessageConfig struct {
-	ChannelNameWebHookUrlMap map[string]string
+	Channels []MessageChannelConfig
 }
 
 type TaskConfig struct {
 	PeriodAsHour       uint64
 	StartingTimeAsHour int
 	EndingTimeAsHour   int
+}
+
+type MessageChannelConfig struct {
+	ChannelName          string
+	WebHookUrl           string
+	NotificationModifier string
 }

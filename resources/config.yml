@@ -3,8 +3,10 @@ tasks:
       apiUrl: ${API_URL}
       apiToken: ${API_TOKEN}
     messageConfig:
-      channelNameWebHookUrlMap:
-        any_ci_channel: ${HOOK_FOR_CI_CHANNEL}
+      channels:
+        - channelName: "any_ci_channel"
+          webHookUrl: ${HOOK_FOR_CI_CHANNEL}
+          notificationModifier: ""
     taskConfig:
       periodAsHour: 2
       startingTimeAsHour: 10
