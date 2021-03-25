@@ -19,72 +19,85 @@ func NewSlackService(client http.Client) service.MessageService {
 	return &SlackService{client: client}
 }
 func (service *SlackService) SendMessage(channelName string, host string, mergeRequests []response.GitResponse) {
-	//TODO implementing a block builder might be better (move all slack specific things to package slack)
-	blocks := []request.Block{
-		{
-			Type: "section",
-			Text: &request.Markdown{
-				Type: "mrkdwn",
-				Text: "*Summary*",
-			},
-		},
-		{
-			Type: "divider",
-		},
-	}
-	summary := calculateSummary(mergeRequests)
-
-	blocks = append(blocks, request.Block{
-		Type: "section",
-		Fields: []request.Markdown{
+	var blocks []request.Block
+	if len(mergeRequests) != 0 {
+		//TODO implementing a block builder might be better (move all slack specific things to package slack)
+		blocks = []request.Block{
 			{
-				Type: "mrkdwn",
-				Text: fmt.Sprintf("*Current Open Merge Requests*\n:alert: Number: %d\n:baklava: Earliest: %d hours\n:crown: Latest: %d hours",
-					summary.MergeRequestCountTotal,
-					summary.EarliestAsHour,
-					summary.LatestAsHour,
-				),
+				Type: "section",
+				Text: &request.Markdown{
+					Type: "mrkdwn",
+					Text: "*Hey @channel! There are merge requests to look!* :alert::alert:",
+				},
 			},
 			{
-				Type: "mrkdwn",
-				Text: fmt.Sprintf("*Today's Open Merge Requests*\n:alert-blue: Number: %d\n:baklava: Earliest: %d hours\n:crown: Latest: %d hours",
-					summary.MergeRequestCountToday,
-					summary.EarliestAsHourToday,
-					summary.LatestAsHourToday,
-				),
+				Type: "divider",
 			},
-		},
-	})
+		}
+		summary := calculateSummary(mergeRequests)
 
-	blocks = append(blocks, []request.Block{
-		{
-			Type: "section",
-			Text: &request.Markdown{
-				Type: "mrkdwn",
-				Text: "*Merge Requests Awaiting Your Approval*",
-			},
-		},
-		{
-			Type: "divider",
-		},
-	}...)
-
-	for _, mergeRequest := range mergeRequests {
 		blocks = append(blocks, request.Block{
 			Type: "section",
-			Text: &request.Markdown{
-				Type: "mrkdwn",
-				Text: fmt.Sprintf("*<%s|%s>*\nSource Branch: *%s*\nTarget Branch: *%s*\nMerge Status: *%s*  \nCreated At: *%s*  \nUpdated At: *%s*",
-					mergeRequest.WebUrl,
-					mergeRequest.Title,
-					mergeRequest.SourceBranch,
-					mergeRequest.TargetBranch,
-					mergeRequest.MergeStatus,
-					mergeRequest.CreatedAt,
-					mergeRequest.UpdatedAt,
-				),
+			Fields: []request.Markdown{
+				{
+					Type: "mrkdwn",
+					Text: fmt.Sprintf("*Current Open Merge Requests*\n:alert: Number: %d\n:baklava: Earliest: %d hours\n:crown: Latest: %d hours",
+						summary.MergeRequestCountTotal,
+						summary.EarliestAsHour,
+						summary.LatestAsHour,
+					),
+				},
+				{
+					Type: "mrkdwn",
+					Text: fmt.Sprintf("*Today's Open Merge Requests*\n:alert-blue: Number: %d\n:baklava: Earliest: %d hours\n:crown: Latest: %d hours",
+						summary.MergeRequestCountToday,
+						summary.EarliestAsHourToday,
+						summary.LatestAsHourToday,
+					),
+				},
 			},
 		})
+
+		blocks = append(blocks, []request.Block{
+			{
+				Type: "section",
+				Text: &request.Markdown{
+					Type: "mrkdwn",
+					Text: "*Merge Requests Awaiting Your Approval*",
+				},
+			},
+			{
+				Type: "divider",
+			},
+		}...)
+
+		for _, mergeRequest := range mergeRequests {
+			blocks = append(blocks, request.Block{
+				Type: "section",
+				Text: &request.Markdown{
+					Type: "mrkdwn",
+					Text: fmt.Sprintf("*<%s|%s>*\nSource Branch: *%s*\nTarget Branch: *%s*\nMerge Status: *%s*  \nCreated At: *%s*  \nUpdated At: *%s*",
+						mergeRequest.WebUrl,
+						mergeRequest.Title,
+						mergeRequest.SourceBranch,
+						mergeRequest.TargetBranch,
+						mergeRequest.MergeStatus,
+						mergeRequest.CreatedAt,
+						mergeRequest.UpdatedAt,
+					),
+				},
+			})
+		}
+	} else {
+		blocks = []request.Block{
+			{
+				Type: "section",
+				Text: &request.Markdown{
+					Type: "mrkdwn",
+					Text: "*Hey congrats :omercan-party:! There is not any merge request!* :crown::crown::baklava::baklava:",
+				},
+			},
+		}
 	}
 
 	_, err := service.client.Get(host, request.SlackRequest{
