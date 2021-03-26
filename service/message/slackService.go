@@ -26,10 +26,10 @@ func (service *SlackService) SendMessage(channelConfig model.MessageChannelConfi
 		//TODO implementing a block builder might be better (move all slack specific things to package slack)
 		blocks = []request.Block{
 			{
-				Type: "section",
+				Type: "header",
 				Text: &request.Markdown{
-					Type: "mrkdwn",
-					Text: fmt.Sprintf("*Hey @%s! There are merge requests to look!* :alert::alert:", channelConfig.NotificationModifier),
+					Type: "plain_text",
+					Text: fmt.Sprintf("Hey %s! There are merge requests to look! :alert::alert:", channelConfig.NotificationModifier),
 				},
 			},
 			{
@@ -73,29 +73,33 @@ func (service *SlackService) SendMessage(channelConfig model.MessageChannelConfi
 			},
 		}...)
 
-		for _, mergeRequest := range mergeRequests {
-			blocks = append(blocks, request.Block{
-				Type: "section",
-				Text: &request.Markdown{
-					Type: "mrkdwn",
-					Text: fmt.Sprintf("*<%s|%s>*\nSource Branch: *%s*\nTarget Branch: *%s*\nMerge Status: *%s*  \nCreated At: *%s*  \nUpdated At: *%s*",
-						mergeRequest.WebUrl,
-						mergeRequest.Title,
-						mergeRequest.SourceBranch,
-						mergeRequest.TargetBranch,
-						mergeRequest.MergeStatus,
-						mergeRequest.CreatedAt,
-						mergeRequest.UpdatedAt,
-					),
-				},
-			})
+		fields := make([]request.Markdown, len(mergeRequests))
+		for index, mergeRequest := range mergeRequests {
+			fields[index] = request.Markdown{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*<%s|%s>*\nAuthor: *%s*\nSource Branch: *%s*\nTarget Branch: *%s*\nMerge Status: *%s*  \nCreated At: *%s*  \nUpdated At: *%s*",
+					mergeRequest.WebUrl,
+					mergeRequest.Title,
+					mergeRequest.Author.Name,
+					mergeRequest.SourceBranch,
+					mergeRequest.TargetBranch,
+					mergeRequest.MergeStatus,
+					mergeRequest.CreatedAt,
+					mergeRequest.UpdatedAt,
+				),
+			}
 		}
+
+		blocks = append(blocks, request.Block{
+			Type:   "section",
+			Fields: fields,
+		})
 	} else {
 		blocks = []request.Block{
 			{
-				Type: "section",
+				Type: "header",
 				Text: &request.Markdown{
-					Type: "mrkdwn",
+					Type: "plain_text",
 					Text: "*Hey congrats :omercan-party:! There is not any merge request!* :crown::crown::baklava::baklava:",
 				},
 			},
@@ -103,9 +107,11 @@ func (service *SlackService) SendMessage(channelConfig model.MessageChannelConfi
 	}
 
 	_, err := service.client.Get(channelConfig.WebHookUrl, request.SlackRequest{
-		Channel: channelConfig.ChannelName,
-		Type:    "home",
-		Blocks:  blocks,
+		Channel:   channelConfig.ChannelName,
+		Type:      "home",
+		Blocks:    blocks,
+		IconEmoji: channelConfig.IconEmoji,
+		Username:  channelConfig.Username,
 	})
 
 	if err != nil {
@@ -169,6 +175,22 @@ func calculateSummary(mergeRequests []response.GitResponse) Summary {
 				summary.LatestAsHour = elapsedTimeAsHoursAfterMergeRequest
 			}
 		}
+	}
+
+	if summary.EarliestAsHour == math.MinInt32 {
+		summary.EarliestAsHour = 0
+	}
+
+	if summary.LatestAsHour == math.MaxInt32 {
+		summary.LatestAsHour = 0
+	}
+
+	if summary.EarliestAsHourToday == math.MinInt32 {
+		summary.EarliestAsHourToday = 0
+	}
+
+	if summary.LatestAsHourToday == math.MaxInt32 {
+		summary.LatestAsHourToday = 0
 	}
 
 	return summary

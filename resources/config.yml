@@ -7,6 +7,8 @@ tasks:
         - channelName: "any_ci_channel"
           webHookUrl: ${HOOK_FOR_CI_CHANNEL}
           notificationModifier: ""
+          iconEmoji: ":smile:"
+          username: "any bot name"
     taskConfig:
       periodAsHour: 2
       startingTimeAsHour: 10

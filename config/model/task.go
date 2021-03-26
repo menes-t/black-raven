@@ -25,4 +25,6 @@ type MessageChannelConfig struct {
 	ChannelName          string
 	WebHookUrl           string
 	NotificationModifier string
+	IconEmoji            string
+	Username             string
 }
