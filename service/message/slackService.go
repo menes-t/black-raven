@@ -43,18 +43,16 @@ func (service *SlackService) SendMessage(channelConfig model.MessageChannelConfi
 			Fields: []request.Markdown{
 				{
 					Type: "mrkdwn",
-					Text: fmt.Sprintf("*Current Open Merge Requests*\n:alert: Number: %d\n:baklava: Earliest: %d hours\n:crown: Latest: %d hours",
+					Text: fmt.Sprintf("*Current Open Merge Requests*\n:alert: Number: %d\n:baklava: Earliest: %d hours",
 						summary.MergeRequestCountTotal,
 						summary.EarliestAsHour,
-						summary.LatestAsHour,
 					),
 				},
 				{
 					Type: "mrkdwn",
-					Text: fmt.Sprintf("*Today's Open Merge Requests*\n:alert-blue: Number: %d\n:baklava: Earliest: %d hours\n:crown: Latest: %d hours",
+					Text: fmt.Sprintf("*Today's Open Merge Requests*\n:alert-blue: Number: %d\n:baklava: Earliest: %d hours",
 						summary.MergeRequestCountToday,
 						summary.EarliestAsHourToday,
-						summary.LatestAsHourToday,
 					),
 				},
 			},
@@ -77,15 +75,12 @@ func (service *SlackService) SendMessage(channelConfig model.MessageChannelConfi
 		for index, mergeRequest := range mergeRequests {
 			fields[index] = request.Markdown{
 				Type: "mrkdwn",
-				Text: fmt.Sprintf("*<%s|%s>*\nAuthor: *%s*\nSource Branch: *%s*\nTarget Branch: *%s*\nMerge Status: *%s*  \nCreated At: *%s*  \nUpdated At: *%s*",
+				Text: fmt.Sprintf("*<%s|%s>*\nAuthor: *%s*\nMerge Status: *%s*  \nWaiting for: *%s*",
 					mergeRequest.WebUrl,
 					mergeRequest.Title,
 					mergeRequest.Author.Name,
-					mergeRequest.SourceBranch,
-					mergeRequest.TargetBranch,
 					mergeRequest.MergeStatus,
-					mergeRequest.CreatedAt,
-					mergeRequest.UpdatedAt,
+					calculateElapsedTime(mergeRequest.CreatedAt),
 				),
 			}
 		}
@@ -123,9 +118,7 @@ type Summary struct {
 	MergeRequestCountTotal int
 	MergeRequestCountToday int
 	EarliestAsHour         int
-	LatestAsHour           int
 	EarliestAsHourToday    int
-	LatestAsHourToday      int
 }
 
 //TODO this is slack related but not a concern of slack service (move all slack specific things to package slack)
@@ -135,9 +128,7 @@ func calculateSummary(mergeRequests []response.GitResponse) Summary {
 		MergeRequestCountTotal: 0,
 		MergeRequestCountToday: 0,
 		EarliestAsHour:         math.MinInt32,
-		LatestAsHour:           math.MaxInt32,
 		EarliestAsHourToday:    math.MinInt32,
-		LatestAsHourToday:      math.MaxInt32,
 	}
 
 	for _, mergeRequest := range mergeRequests {
@@ -159,20 +150,11 @@ func calculateSummary(mergeRequests []response.GitResponse) Summary {
 				summary.EarliestAsHour = elapsedTimeAsHoursAfterMergeRequest
 			}
 
-			if elapsedTimeAsHoursAfterMergeRequest < summary.LatestAsHourToday {
-				summary.LatestAsHourToday = elapsedTimeAsHoursAfterMergeRequest
-				summary.LatestAsHour = elapsedTimeAsHoursAfterMergeRequest
-			}
-
 		} else {
 			summary.MergeRequestCountTotal += 1
 
 			if elapsedTimeAsHoursAfterMergeRequest > summary.EarliestAsHour {
 				summary.EarliestAsHour = elapsedTimeAsHoursAfterMergeRequest
-			}
-
-			if elapsedTimeAsHoursAfterMergeRequest < summary.LatestAsHour {
-				summary.LatestAsHour = elapsedTimeAsHoursAfterMergeRequest
 			}
 		}
 	}
@@ -181,19 +163,29 @@ func calculateSummary(mergeRequests []response.GitResponse) Summary {
 		summary.EarliestAsHour = 0
 	}
 
-	if summary.LatestAsHour == math.MaxInt32 {
-		summary.LatestAsHour = 0
-	}
-
 	if summary.EarliestAsHourToday == math.MinInt32 {
 		summary.EarliestAsHourToday = 0
 	}
 
-	if summary.LatestAsHourToday == math.MaxInt32 {
-		summary.LatestAsHourToday = 0
+	return summary
+}
+
+func calculateElapsedTime(createdAtAsString string) string {
+	timeLayout := "2006-01-02T15:04:05.999Z07:00" //TODO time helper might be better
+	createdAt, err := time.Parse(timeLayout, createdAtAsString)
+
+	if err != nil {
+		return ""
 	}
 
-	return summary
+	now := time.Now()
+	elapsedTimeAsMinutesAfterMergeRequest := int(now.Sub(createdAt) / (time.Minute / time.Nanosecond))
+
+	if elapsedTimeAsMinutesAfterMergeRequest > 60 {
+		return fmt.Sprintf("%d hours", elapsedTimeAsMinutesAfterMergeRequest/int(time.Hour/time.Minute))
+	} else {
+		return fmt.Sprintf("%d minutes", elapsedTimeAsMinutesAfterMergeRequest)
+	}
 }
 
 //TODO time helper might be better

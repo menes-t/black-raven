@@ -28,7 +28,5 @@ func main() {
 
 	reminderService := service.NewReminderService(gitRepositoryServices, messageServices, applicationConfig.GetConfig())
 
-	reminderService.Remind(applicationConfig.GetConfig().Tasks[0]) //TODO delete this
-
-	//reminderService.StartNewDay() TODO uncomment this
+	reminderService.StartNewDay()
 }

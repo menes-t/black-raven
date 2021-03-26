@@ -16,8 +16,7 @@ type Config struct {
 }
 
 type ApplicationConfig struct {
-	Tasks        []model.Task
-	StartingTime string
+	Tasks []model.Task
 }
 
 type ApplicationConfigGetter interface {

@@ -13,4 +13,3 @@ tasks:
       periodAsHour: 2
       startingTimeAsHour: 10
       endingTimeAsHour: 18
-startingTime: "08:40"
