@@ -110,7 +110,7 @@ func (service *SlackService) SendMessage(channelConfig model.MessageChannelConfi
 	})
 
 	if err != nil {
-		logger.Logger().Error("Could not send message to slack")
+		logger.Logger().Error("Could not send message to slack. err: " + err.Error())
 	}
 }
 

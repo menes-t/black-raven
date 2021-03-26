@@ -20,7 +20,7 @@ func (service *GitlabService) Get(url string, token string) []response.GitRespon
 	responseAsByteArray, err := service.client.Get(url, token)
 
 	if err != nil {
-		logger.Logger().Error("Could not get merge requests")
+		logger.Logger().Error("Could not get merge requests. err: " + err.Error())
 		return []response.GitResponse{}
 	}
 
@@ -28,7 +28,7 @@ func (service *GitlabService) Get(url string, token string) []response.GitRespon
 	err = jsoniter.Unmarshal(responseAsByteArray, &responseModel)
 
 	if err != nil {
-		logger.Logger().Error("Could not get merge requests")
+		logger.Logger().Error("Could not get merge requests. err: " + err.Error())
 		return []response.GitResponse{}
 	}
 
