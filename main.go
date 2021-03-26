@@ -12,7 +12,7 @@ import (
 //TODO refactor http clients
 
 func main() {
-	applicationConfig, err := config.NewApplicationConfigGetter("resources/config.yml")
+	applicationConfig, err := config.NewApplicationConfigGetter("/app/resources/config.yml")
 	if err != nil {
 		panic(err)
 	}
