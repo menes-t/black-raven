@@ -4,6 +4,7 @@ import (
 	"github.com/jasonlvhit/gocron"
 	"github.com/menes-t/black-raven/config"
 	"github.com/menes-t/black-raven/config/model"
+	"github.com/menes-t/black-raven/logger"
 	"github.com/menes-t/black-raven/model/response"
 	"strconv"
 	"time"
@@ -58,17 +59,34 @@ func (service *Service) StartNewDay() {
 }
 
 func (service *Service) startNewTask(task model.Task, taskScheduler *gocron.Scheduler) {
-	now := time.Now()
+
+	location, err := time.LoadLocation("Europe/Istanbul")
+	now := time.Now().In(location)
+
+	if err != nil {
+		return
+	}
+
+	taskStartTime := time.Date(now.Year(), now.Month(), now.Day(), task.TaskConfig.StartingTimeAsHour, 0, 0, 0, now.Location())
+	taskEndTime := time.Date(now.Year(), now.Month(), now.Day(), task.TaskConfig.EndingTimeAsHour, 0, 0, 0, now.Location())
+	var startingDate time.Time
 
 	var job *gocron.Job
-	if now.Hour() < task.TaskConfig.EndingTimeAsHour && now.Hour() > task.TaskConfig.StartingTimeAsHour {
-		now = now.Add(time.Second)
-		job = taskScheduler.Every(task.TaskConfig.PeriodAsHour).Hour().From(&now)
-	} else if (now.Hour() < task.TaskConfig.StartingTimeAsHour && (now.Hour() >= 0 || now.Hour() == 24)) || (now.Hour() >= task.TaskConfig.EndingTimeAsHour && now.Hour() < 24) {
-		job = taskScheduler.Every(task.TaskConfig.PeriodAsHour).Hour().At(strconv.Itoa(task.TaskConfig.StartingTimeAsHour) + ":00")
+	if now.Before(taskEndTime) && now.After(taskStartTime) {
+		startingDate = now.Add(time.Second)
+	} else if now.After(taskEndTime) {
+		startingDate = time.Date(now.Year(), now.Month(), now.Day()+1, task.TaskConfig.StartingTimeAsHour, 0, 0, 0, now.Location())
+	} else if now.Before(taskStartTime) {
+		startingDate = time.Date(now.Year(), now.Month(), now.Day(), task.TaskConfig.StartingTimeAsHour, 0, 0, 0, now.Location())
 	} else {
 		//there is not any case here and the most important and only assumption is starting time < ending time
 	}
+
+	startingDate = postponeToPassWeekend(startingDate)
+
+	job = taskScheduler.Every(task.TaskConfig.PeriodAsHour).Hours().From(&startingDate)
+	logger.Logger().Info("Task is scheduled for " + startingDate.String())
+
 	//TODO handle these cron job errors in some way
 	job.Do(service.Remind, task)
 
@@ -76,4 +94,13 @@ func (service *Service) startNewTask(task model.Task, taskScheduler *gocron.Sche
 		taskScheduler.Remove(job)
 		service.startNewTask(task, taskScheduler)
 	})
+}
+
+func postponeToPassWeekend(now time.Time) time.Time {
+	if now.Weekday() == time.Saturday {
+		now = now.Add(2 * 24 * time.Hour)
+	} else if now.Weekday() == time.Sunday {
+		now = now.Add(1 * 24 * time.Hour)
+	}
+	return now
 }
